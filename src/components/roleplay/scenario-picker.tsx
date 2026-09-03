@@ -69,7 +69,7 @@ export function ScenarioPicker({
 
       {hasLockedScenarios && (
         <p className="mb-4 rounded-sm border border-gold-500/30 bg-gold-500/10 px-3 py-2 text-sm text-gold-200">
-          Try "First Date" free — the rest of Story Mode needs Premium.
+          Try &quot;First Date&quot; free — the rest of Story Mode needs Premium.
         </p>
       )}
 
