@@ -155,8 +155,13 @@ const envSchema = z.object({
   KAETAH_BRAIN_ENABLED: z.enum(['true', 'false']).default('false'),
 
   // ── Payments (optional in dev, required in prod) ─────────────────────────
-  STRIPE_SECRET_KEY:      req('sk_test_placeholder'),
-  STRIPE_WEBHOOK_SECRET:  req('whsec_placeholder'),
+  // NOTE (2026-09-03): Stripe is in DISABLED_PROVIDERS (see provider-gate.ts)
+  // — only Paystack + NOWPayments are live checkout options right now. Kept
+  // as a soft placeholder default rather than a hard requirement so prod
+  // doesn't crash over a provider that's intentionally switched off; routes
+  // and webhook handlers stay intact underneath for when it's re-enabled.
+  STRIPE_SECRET_KEY:      z.string().min(1).default('sk_test_placeholder'),
+  STRIPE_WEBHOOK_SECRET:  z.string().min(1).default('whsec_placeholder'),
   // NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY — only needed if adding Stripe.js Elements
   // on the client. Currently all Stripe flows are server-side (checkout.sessions.create).
   // Add back here if/when client-side payment elements are introduced.
@@ -191,10 +196,11 @@ const envSchema = z.object({
   // alongside Stripe for international subscribers rather than instead of.
   // Sandbox vs live use entirely separate API keys/webhook secrets/price
   // IDs — see PADDLE_ENVIRONMENT below.
-  PADDLE_API_KEY:         req('pdl_test_placeholder'),
-  PADDLE_WEBHOOK_SECRET:  req('pdl_ntfset_placeholder'),
-  PADDLE_ENVIRONMENT:     useDefaults ? z.enum(['sandbox', 'production']).default('sandbox')
-                                       : z.enum(['sandbox', 'production']),
+  // NOTE (2026-09-03): Paddle is also in DISABLED_PROVIDERS right now —
+  // same soft-placeholder treatment as Stripe above, for the same reason.
+  PADDLE_API_KEY:         z.string().min(1).default('pdl_test_placeholder'),
+  PADDLE_WEBHOOK_SECRET:  z.string().min(1).default('pdl_ntfset_placeholder'),
+  PADDLE_ENVIRONMENT:     z.enum(['sandbox', 'production']).default('sandbox'),
 
   // Tier+interval -> Paddle Price ID (pri_xxx), same shape as the Paystack
   // plan-code env vars above. Created per-Paddle-account via the Dashboard
