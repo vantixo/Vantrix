@@ -21,7 +21,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { bg }             from '@/lib/logger';
 import { trackCardView } from '@/lib/growth/viral-share';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 // Map milestone keys and card types to their emoji
 const MILESTONE_EMOJI: Record<string, string> = {
