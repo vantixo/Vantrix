@@ -1,0 +1,121 @@
+name: CI
+
+# Verify, build, and (when a test Supabase project is configured) run the
+# Playwright E2E suite on every push/PR. This is separate from
+# vantrix-free-tier-crons.yml, which only pings cron routes on a schedule
+# and has nothing to do with verifying the app itself.
+#
+# Required repo secrets for the "build" job (Settings → Secrets and
+# variables → Actions):
+#   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+#   SUPABASE_SERVICE_ROLE_KEY  — a dedicated project is fine; the build
+#   step doesn't write data, it only needs these to be non-empty for
+#   client init to succeed (see PRODUCTION_FIXES/AUDIT_FINDINGS_LOG for
+#   which routes actually touch the DB at build time vs. request time).
+#
+# Additional secrets for the "e2e" job — omit these and it skips itself
+# (logs why, does not fail the run) rather than block merges before a
+# test project exists:
+#   E2E_TEST_EMAIL, E2E_TEST_PASSWORD — a pre-created, already
+#   email-confirmed user in that same (or a separate, E2E-only) Supabase
+#   project. See e2e/auth.setup.ts's header for why this can't be a
+#   fresh signup each run.
+#
+# Caveat: this hasn't been run on a real GitHub-hosted runner — verified
+# in a sandboxed environment with the same Node/npm versions and the same
+# `npm run build` command, but the actual Actions YAML syntax/trigger
+# behavior is unverified. Confirm the first real run before relying on it
+# to gate merges.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "24"
+
+jobs:
+  verify:
+    name: Typecheck, lint, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next
+          retention-days: 1
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: build
+    # Skips cleanly (doesn't fail the run) until a test Supabase project +
+    # seeded user exist — see the file header. Remove this `if` once
+    # they're set up so a broken/missing secret shows up as a real
+    # failure instead of a silent skip.
+    if: ${{ needs.build.result == 'success' && secrets.E2E_TEST_EMAIL != '' && secrets.E2E_TEST_PASSWORD != '' && secrets.NEXT_PUBLIC_SUPABASE_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: .next
+      - run: npm run test:e2e
+        env:
+          CI: true
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  e2e-skip-notice:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ needs.build.result == 'success' && !(secrets.E2E_TEST_EMAIL != '' && secrets.E2E_TEST_PASSWORD != '' && secrets.NEXT_PUBLIC_SUPABASE_URL != '') }}
+    steps:
+      - run: |
+          echo "::warning::E2E job skipped — E2E_TEST_EMAIL, E2E_TEST_PASSWORD, and/or NEXT_PUBLIC_SUPABASE_URL repo secrets aren't set. See this workflow file's header for what's needed."

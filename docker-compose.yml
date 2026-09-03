@@ -1,0 +1,72 @@
+# Local/self-hosted stack: Vantrix app + the Python semantic-memory service.
+# Vercel deployments don't use this file — services deployed there need to
+# be pointed to via env vars (BRAIN_SERVICE_URL, etc).
+# This compose file is for self-hosting the whole stack together.
+
+services:
+  app:
+    build:
+      context: .
+      target: runner
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.production
+    environment:
+      BRAIN_SERVICE_URL: http://brain:8000
+      # AUTH-FIX: threads BRAIN_SERVICE_API_KEY (from .env.production) into
+      # both app and worker so they authenticate to the brain service —
+      # see services/brain/main.py and src/lib/ai/brain-service-auth.ts.
+      # Since brain is only reachable on the compose-internal network here
+      # (only 8000 is published to the host, not exposed beyond it unless
+      # you choose to), this is defense in depth rather than the only
+      # protection — still recommended, cheap, and keeps local/self-hosted
+      # parity with any deployment where the service is reachable from
+      # outside the VPC.
+      BRAIN_SERVICE_API_KEY: ${BRAIN_SERVICE_API_KEY:-}
+    depends_on:
+      brain:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # DOCKER-01 FIX: previously missing — without this service, self-hosted
+  # deployments had no queue processing at all (the `app` service serves
+  # HTTP only; jobs enqueued via /api/queue/enqueue were never picked up
+  # except on Vercel, where Vercel Cron hits /api/queue/worker every
+  # minute instead of running this standalone process).
+  worker:
+    build:
+      context: .
+      target: worker
+    env_file:
+      - .env.production
+    environment:
+      BRAIN_SERVICE_URL: http://brain:8000
+      BRAIN_SERVICE_API_KEY: ${BRAIN_SERVICE_API_KEY:-}
+    depends_on:
+      brain:
+        condition: service_healthy
+    restart: unless-stopped
+
+  brain:
+    build:
+      context: ./services/brain
+    # P1 fix: was published to the host ("8000:8000"), so on a self-hosted
+    # deploy this ML inference endpoint could be reachable from outside the
+    # machine even with auth misconfigured. `expose` keeps it reachable from
+    # other containers on the internal compose network (i.e. the app
+    # service above) without binding it to the host at all. If you need to
+    # hit it directly from the host for local debugging, temporarily add
+    # back `ports: ["127.0.0.1:8000:8000"]` (loopback-only, never "8000:8000").
+    expose:
+      - "8000"
+    environment:
+      BRAIN_SERVICE_API_KEY: ${BRAIN_SERVICE_API_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+

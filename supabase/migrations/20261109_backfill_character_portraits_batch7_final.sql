@@ -1,0 +1,27 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Backfill Cassian Rune's portrait — the last character in the entire
+-- roster still on the shared placeholder after batch5 (20261107) and
+-- batch6 (20261108).
+--
+-- Cassian Rune: "Cassian, Reader of Runes — The Obsessive Scholar...
+-- Translator of dead languages... Every language hides at least one truth
+-- its speakers were afraid to say plainly." The supplied image is a
+-- direct, literal match: a man poring over an open manuscript filled with
+-- actual runic/foreign script (not placeholder Latin text), magnifying
+-- loupe in hand, tense and absorbed expression, surrounded by archive
+-- shelves of ancient books under a single warm desk lamp — this was
+-- generated from a prompt built specifically off this character's own
+-- occupation/archetype/description fields, so unlike some earlier
+-- batches this isn't a best-fit guess against unrelated stock art.
+--
+-- Source file was a PNG; re-encoded to genuine JPEG bytes (not just
+-- renamed) before saving, per the lesson from the PNG-saved-as-.jpg bug
+-- batch4's own migration notes flagged and fixed.
+--
+-- This closes out the character-portrait backfill effort that started
+-- with batch3 (20261105): every character in the `characters` table now
+-- has a real, verified image_url. Zero rows should remain pointing at
+-- '/images/character-placeholder.png' after this runs.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+UPDATE characters SET image_url = '/images/characters/cassian-rune.jpg' WHERE name = 'Cassian Rune' AND image_url = '/images/character-placeholder.png';

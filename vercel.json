@@ -1,0 +1,263 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "regions": [
+    "iad1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/daily-reset",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/priority-memory-export",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/surprises",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/memory-archive",
+      "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/embedding-backfill",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron/message-archive",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/deep-tick",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/referral-payouts",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/belief-maintenance",
+      "schedule": "0 5 * * 1"
+    },
+    {
+      "path": "/api/cron/wisdom-habit-maintenance",
+      "schedule": "15 5 * * 1"
+    },
+    {
+      "path": "/api/cron/aging-tick",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/daily-world-choice",
+      "schedule": "5 4 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/home",
+      "destination": "/discover",
+      "permanent": true
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "NODE_OPTIONS": "--max-old-space-size=8192"
+  },
+  "functions": {
+    "src/app/api/queue/worker/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/daily-reset/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/content-engine/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/universe-images/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/content-engine-video/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/backstory-engine/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/training-data-export/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/priority-memory-export/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/nudges/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/character-initiatives/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/character-posts/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/character-social/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/surprises/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/billing-recovery/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/memory-archive/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/embedding-backfill/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/message-archive/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/economy-tick/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/governance-tick/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/civic-affairs-tick/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/narrative-tick/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/legacy-tick/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/deep-tick/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/paystack-renewal/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/referral-payouts/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/belief-maintenance/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/wisdom-habit-maintenance/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/aging-tick/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/animate-backfill/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/registration-reminders/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/daily-world-choice/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/message-recovery/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/revocation-sweep/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/chat/stream/route.ts": {
+      "maxDuration": 45
+    },
+    "src/app/api/chat/guest/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/chat/image/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/images/generate-batch/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/queue/workers/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/notifications/route.ts": {
+      "maxDuration": 25
+    },
+    "src/app/api/characters/generate-image/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/user/export/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/webhooks/fal-lora/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/workers/run/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/universe/status/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/universe/legends/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/universe/history/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/universe/artifacts/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/universe/world/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/universe/locations/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/universe/factions/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/universe/profile/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/webhooks/fal-animate/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/webhooks/fal-3d-model/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/admin/content-queue/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/admin/content-queue/[id]/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/admin/generate-character-portraits/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/admin/generate-character-models/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/digital-twin/train/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

@@ -1,0 +1,42 @@
+-- 20261031_recommendations_engine_pool_index.sql
+--
+-- lib/recommendations/engine.ts's getRecommendations() — the "For You"
+-- engine behind the dating deck, dating/world, and (as of the previous
+-- migration's sibling work) the new Chats-page "You Might Also Like"
+-- strip — runs:
+--
+--   WHERE active = true AND is_public = true AND dating_enabled = true
+--   [AND is_nsfw = false] [AND gender = ?] [AND is_premium = false]
+--   LIMIT 2000
+--
+-- (Sort/score happens in application code afterward, not SQL — see
+-- getRecommendations()'s own comment on why: the blended score isn't a
+-- column Postgres can order by. So this index only needs to satisfy the
+-- filter, not an ORDER BY.)
+--
+-- None of the existing characters indexes cover this shape:
+--   - idx_characters_active_gender_cat(active, gender, category) — no
+--     is_public/dating_enabled/is_nsfw/is_premium, and category isn't
+--     even a column this query filters on
+--   - idx_characters_recommend_pool(like_count) WHERE active AND
+--     is_public AND is_live — a *different* recommender's query
+--     (character-recommender.ts's free-text search), which filters
+--     is_live, not dating_enabled, and needs an ORDER BY like_count this
+--     one doesn't
+-- So this query previously fell back to a sequential scan (partially
+-- assisted by idx_characters_active_gender_cat for active+gender alone).
+-- Was tolerable while the only callers were the dating deck/world routes;
+-- now that GET /api/recommendations has a real frontend caller that runs
+-- on every authenticated visit to /chats, this is worth its own index.
+--
+-- Partial on the three filters every call applies (active, is_public,
+-- dating_enabled), with the three *optional* filters (is_nsfw, gender,
+-- is_premium) as index columns rather than further WHERE conditions —
+-- they only apply on some calls (unauthenticated/free-tier/no gender
+-- filter), so baking them into the partial predicate would make the
+-- index unusable for calls that don't filter on them. As index columns,
+-- Postgres can still use them to narrow the scan when a call does supply
+-- them, and simply ignores them when it doesn't.
+CREATE INDEX IF NOT EXISTS idx_characters_recommendations_engine_pool
+  ON characters (gender, is_nsfw, is_premium)
+  WHERE active = TRUE AND is_public = TRUE AND dating_enabled = TRUE;

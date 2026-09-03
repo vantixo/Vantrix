@@ -1,0 +1,62 @@
+<svg width="960" height="720" viewBox="0 0 960 720" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Abstract network of connected nodes representing character memory, personality, and relationships">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </radialGradient>
+    <linearGradient id="goldLine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dbb877" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#a9822e" stop-opacity="0.1"/>
+    </linearGradient>
+    <radialGradient id="nodeCore" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#f0dcae"/>
+      <stop offset="55%" stop-color="#c9a15a"/>
+      <stop offset="100%" stop-color="#8a6a2c"/>
+    </radialGradient>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="960" height="720" fill="url(#bgGlow)"/>
+
+  <!-- connective lattice -->
+  <g stroke="url(#goldLine)" stroke-width="1.4">
+    <line x1="150" y1="160" x2="420" y2="260"/>
+    <line x1="420" y1="260" x2="700" y2="140"/>
+    <line x1="420" y1="260" x2="480" y2="430"/>
+    <line x1="480" y1="430" x2="250" y2="520"/>
+    <line x1="480" y1="430" x2="720" y2="500"/>
+    <line x1="720" y1="500" x2="820" y2="300"/>
+    <line x1="700" y1="140" x2="820" y2="300"/>
+    <line x1="150" y1="160" x2="250" y2="520"/>
+    <line x1="480" y1="430" x2="700" y2="140"/>
+    <line x1="250" y1="520" x2="480" y2="620"/>
+    <line x1="480" y1="620" x2="720" y2="500"/>
+  </g>
+
+  <!-- outer minor nodes -->
+  <g fill="#c9a15a" fill-opacity="0.55">
+    <circle cx="150" cy="160" r="5"/>
+    <circle cx="700" cy="140" r="5"/>
+    <circle cx="820" cy="300" r="5"/>
+    <circle cx="250" cy="520" r="5"/>
+    <circle cx="720" cy="500" r="5"/>
+    <circle cx="480" cy="620" r="5"/>
+  </g>
+
+  <!-- primary nodes with glow -->
+  <g filter="url(#softGlow)">
+    <circle cx="420" cy="260" r="14" fill="url(#nodeCore)"/>
+    <circle cx="480" cy="430" r="20" fill="url(#nodeCore)"/>
+    <circle cx="720" cy="500" r="11" fill="url(#nodeCore)"/>
+  </g>
+
+  <!-- hairline frame accents -->
+  <path d="M40 40 H140 M40 40 V100" stroke="#dbb877" stroke-opacity="0.35" stroke-width="1.5" fill="none"/>
+  <path d="M920 680 H820 M920 680 V620" stroke="#dbb877" stroke-opacity="0.35" stroke-width="1.5" fill="none"/>
+</svg>

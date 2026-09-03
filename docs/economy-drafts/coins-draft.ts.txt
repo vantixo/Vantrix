@@ -1,0 +1,98 @@
+// src/lib/economy/coins.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// Vantrix Coin economy — single source of truth for coin packs and spend costs.
+// Priced against existing subscription tiers in @/lib/tiers/config so coins
+// never undercut a subscription (they're a top-up/à la carte layer, not a
+// replacement) and so paid-tier users get a built-in discount on coin spend.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { TierId, isAtLeast } from '@/lib/tiers/config';
+
+// ── Coin packs (real-money purchase) ───────────────────────────────────────
+// Baseline ~$0.0091/coin at the top pack, ~$0.0143/coin at the entry pack —
+// mirrors typical F2P bulk-discount curve (~35% cheaper at the top pack).
+// Anchored so the "Popular" pack (1200 coins/$9.99) lands at the same price
+// as the Basic tier's monthly, and the "Best Value" pack (7000/$49.99) lands
+// at Elite's monthly — makes the coin store feel priced consistently with
+// subscriptions rather than arbitrary.
+
+export interface CoinPack {
+  id: string;
+  coins: number;
+  bonusCoins: number;      // extra coins included, already reflected in `coins`
+  priceUsd: number;
+  label: string;
+  badge?: string;
+  stripePriceId?: string;
+  paystackPlanCode?: string;
+}
+
+export const COIN_PACKS: CoinPack[] = [
+  { id: 'coins_100',  coins: 100,  bonusCoins: 0,    priceUsd: 1.99,  label: 'Starter Pack' },
+  { id: 'coins_550',  coins: 550,  bonusCoins: 50,   priceUsd: 4.99,  label: 'Spark Pack' },
+  { id: 'coins_1200', coins: 1200, bonusCoins: 200,  priceUsd: 9.99,  label: 'Popular Pack', badge: 'Most Popular' },
+  { id: 'coins_2500', coins: 2500, bonusCoins: 500,  priceUsd: 19.99, label: 'Premium Pack' },
+  { id: 'coins_7000', coins: 7000, bonusCoins: 1800, priceUsd: 49.99, label: 'Elite Pack', badge: 'Best Value' },
+];
+
+// ── Coin spend costs by feature ─────────────────────────────────────────────
+// Costs are in coins. `tierDiscountPct` gives Premium/Elite subscribers a
+// break on à la carte spend (on top of the perks they already get free via
+// their tier's daily quotas) — rewards stacking a subscription with coins
+// instead of cannibalizing subscription revenue.
+
+export type FlatCoinFeature = 'character_creation' | 'premium_image' | 'premium_scene';
+export type CoinFeature = FlatCoinFeature | 'gift' | 'creator_tip';
+
+export const COIN_COSTS: Record<FlatCoinFeature, { base: number; note: string }> = {
+  character_creation: { base: 500, note: 'Advanced character build (custom voice + LoRA-ready appearance) beyond free tier slots' },
+  premium_image: { base: 15, note: 'Single image generation beyond daily tier quota' },
+  premium_scene: { base: 75, note: 'Multi-frame / animated scene generation beyond daily tier quota' },
+};
+// gift/creator_tip have variable pricing — see GIFT_TIERS and TIP_PRESETS below
+
+export const GIFT_TIERS = [
+  { id: 'gift_small',    name: 'Rose',        coins: 10,  icon: '🌹' },
+  { id: 'gift_medium',   name: 'Chocolates',  coins: 50,  icon: '🍫' },
+  { id: 'gift_large',    name: 'Jewelry',     coins: 150, icon: '💎' },
+  { id: 'gift_legendary',name: 'Diamond Ring',coins: 500, icon: '💍' },
+] as const;
+
+export const TIP_PRESETS = [50, 100, 250, 500, 1000] as const; // coins; custom amount also allowed
+export const CREATOR_TIP_PLATFORM_CUT_PCT = 20; // platform keeps 20%, creator gets 80%
+
+// ── Tier-based discounts on à la carte coin spend ──────────────────────────
+const TIER_DISCOUNT_PCT: Partial<Record<TierId, number>> = {
+  premium: 10,
+  elite: 20,
+  enterprise: 25,
+};
+
+export function getCoinCost(feature: FlatCoinFeature, userTier: TierId): number {
+  const base = COIN_COSTS[feature].base;
+  const discount = TIER_DISCOUNT_PCT[userTier] ?? 0;
+  return Math.round(base * (1 - discount / 100));
+}
+
+export function getGiftCost(giftId: string): number {
+  const gift = GIFT_TIERS.find(g => g.id === giftId);
+  if (!gift) throw new Error(`Unknown gift: ${giftId}`);
+  return gift.coins;
+}
+
+// Character creation is free (uses tier slot) once a user is Premium+;
+// coins only required below that tier for the *advanced* build path.
+export function requiresCoinsForCharacterCreation(userTier: TierId): boolean {
+  return !isAtLeast(userTier, 'premium');
+}
+
+export function usdToCoins(usd: number): number {
+  // Reference rate derived from the Popular Pack (1200 coins / $9.99)
+  const rate = 1200 / 9.99;
+  return Math.round(usd * rate);
+}
+
+export function coinsToUsdEstimate(coins: number): number {
+  const rate = 9.99 / 1200;
+  return Math.round(coins * rate * 100) / 100;
+}

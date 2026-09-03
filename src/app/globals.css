@@ -1,0 +1,345 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * ── Theme variables ─────────────────────────────────────────────────────
+ * Vantrix has four themes: "gold" (default, unchanged), "nova" (opt-in,
+ * cosmic violet/magenta), "velvet" (opt-in, terracotta/rust), and "aurora"
+ * (opt-in, violet-to-warm-gold dusk) — toggled via the button in TopBar /
+ * PublicHeader, see components/theme/theme-toggle.tsx.
+ *
+ * Mechanism: every color tailwind.config.ts exposes under `gold.*` / `base`
+ * / `gold-fill` / `gold-edge` / `gold-glow` is defined here as a CSS custom
+ * property and read back into tailwind.config.ts via `rgb(var(--x) /
+ * <alpha-value>)` (or, for full gradient/shadow values, `var(--x)` wrapping
+ * the whole declaration). Flipping `data-theme` on <html> is therefore
+ * enough to re-skin every one of the 300+ components that use `bg-gold-500`,
+ * `text-gold-400`, `bg-gold-fill`, `shadow-gold-glow`, etc. — none of those
+ * class names change between themes, only what they resolve to. This is
+ * deliberate: it's the only way to "touch every point in the codebase"
+ * without hand-editing hundreds of files or forking components per-theme.
+ *
+ * `:root` below IS the gold theme (values are byte-identical to what
+ * tailwind.config.ts hardcoded before this system existed — see
+ * arch-15-gold-theme-is-default.test.ts, which asserts that). Nova only
+ * overrides what actually needs to change; neutral tokens (text-*,
+ * border-hairline/interactive, shadow-card/rail) are intentionally NOT
+ * themed — per the directive's own restraint principle (§1: gold/the
+ * accent "only appears on interactive or premium surfaces"), the second
+ * theme earns the same restraint rather than recoloring everything.
+ *
+ * Values are R,G,B triplets (space-separated, no `rgb()` wrapper) so
+ * Tailwind's `<alpha-value>` placeholder can still drive opacity modifiers
+ * (`bg-gold-500/20` etc.) at runtime — a plain hex custom property can't do
+ * that.
+ */
+@layer base {
+  :root {
+    /* base surface */
+    --color-base: 10 10 10; /* #0A0A0A */
+
+    /* accent scale ("gold" is the token name; see comment above) */
+    --gold-50: 250 243 228;
+    --gold-100: 243 228 194;
+    --gold-200: 233 209 155;
+    --gold-300: 223 190 121;
+    --gold-400: 219 184 119;
+    --gold-500: 201 161 90;
+    --gold-600: 169 130 46;
+    --gold-700: 138 106 38;
+    --gold-900: 74 55 20;
+
+    /* composite decorations built from the scale above */
+    --gold-fill-gradient: linear-gradient(180deg, #dbb877 0%, #c9a15a 55%, #a9822e 100%);
+    --gold-edge-gradient: linear-gradient(
+      90deg,
+      rgba(201, 161, 90, 0) 0%,
+      rgba(201, 161, 90, 0.9) 50%,
+      rgba(201, 161, 90, 0) 100%
+    );
+    --gold-glow-shadow: 0 0 0 1px rgba(201, 161, 90, 0.35), 0 8px 24px -8px rgba(201, 161, 90, 0.25);
+
+    /* browser chrome tint (see generateViewport in app/layout.tsx) */
+    --theme-meta-color: #0a0a0a;
+
+    /* MOBILE-SEND-FIX: real visible-viewport height in px, kept in sync
+       by ViewportHeightSync (see that file for why dvh alone can't be
+       trusted). `100dvh` is only a first-paint fallback for the instant
+       before that effect runs. */
+    --vvh: 100dvh;
+  }
+
+  /**
+   * Nova — cosmic violet → magenta → pink, sampled from the companion
+   * hero art (deep-space black, particle glow, violet iris). Same ramp
+   * shape/role as gold at each step (50=lightest tint … 900=deepest), hue
+   * held constant at 283° with lightness retuned per-step so every step
+   * that's actually used as text (300/400/500/600 — see
+   * arch-theme-nova-contrast.test.ts) still clears WCAG AA against
+   * --color-base, the same bar the original gold ramp clears. 600 is
+   * deliberately desaturated rather than darkened to read as "dim/locked"
+   * (mirrors gold-600's premium-nav-item role in sidebar.tsx/bottom-nav.tsx/
+   * mobile-drawer.tsx) — darkening it the way gold does would drop it
+   * below 4.5:1 on a near-black base, since violet contributes far less to
+   * perceived luminance than gold's warm hue does at equal lightness.
+   */
+  [data-theme="nova"] {
+    --color-base: 10 7 16; /* #0A0710 — near-black, subtle violet cast */
+
+    --gold-50: 250 242 253;
+    --gold-100: 237 212 247;
+    --gold-200: 222 180 238;
+    --gold-300: 208 152 230;
+    --gold-400: 206 139 233;
+    --gold-500: 187 108 218; /* primary — CTA fill, active states */
+    --gold-600: 166 105 191; /* muted, not darker — see comment above */
+    --gold-700: 108 29 140;
+    --gold-900: 82 21 106;
+
+    --gold-fill-gradient: linear-gradient(180deg, #ce8be9 0%, #bb6cda 55%, #a669bf 100%);
+    /* The one spot allowed to show all three source hues at once (violet →
+       magenta → pink) — reserved for the same "interactive/premium" motif
+       gold-edge already is (gold-edge-top utility below), nowhere else. */
+    --gold-edge-gradient: linear-gradient(
+      90deg,
+      rgba(103, 41, 245, 0) 0%,
+      rgba(103, 41, 245, 0.85) 20%,
+      rgba(200, 43, 212, 0.95) 50%,
+      rgba(255, 44, 133, 0.85) 80%,
+      rgba(255, 44, 133, 0) 100%
+    );
+    --gold-glow-shadow: 0 0 0 1px rgba(187, 108, 218, 0.4), 0 8px 28px -8px rgba(161, 41, 209, 0.35),
+      0 0 40px -12px rgba(103, 41, 245, 0.25);
+
+    --theme-meta-color: #0a0710;
+  }
+
+  /**
+   * Velvet — deep terracotta-rust and warm near-black, built for the
+   * companion/dating surfaces specifically (match cards, gift flows,
+   * "Our Story," the premium banner) rather than as a general-purpose
+   * reskin. Same restraint rule as nova: neutral tokens stay neutral,
+   * this only changes --color-base and the --gold-* scale, so it costs
+   * zero component edits exactly like nova did.
+   *
+   * Design rationale (color psychology, not decoration):
+   *   - Warm red-orange hues are the most consistently documented color
+   *     in consumer-psychology literature for signaling desire, appetite,
+   *     and urgency — the same property that makes red/orange the default
+   *     "add to cart" / "buy now" color across e-commerce. Used here only
+   *     on the same interactive/premium surfaces gold already reserves
+   *     it for (§1's rule still applies) — the accent's *meaning* doesn't
+   *     change across themes, only its hue.
+   *   - Terracotta/rust rather than a pure/bright red keeps it in
+   *     "mature," not "candy" or "alert" territory — the same associative
+   *     move warm-metal jewelry and autumn/wine-country branding make
+   *     (desaturated warm earth tone, not flat red) to read as premium
+   *     rather than urgent-only. This is also *why* it's shifted orange
+   *     rather than staying a cooler garnet-red: a cooler red measured
+   *     too close to this app's own --danger token (#E5484D) to be safe
+   *     as a primary accent — see arch-theme-velvet-contrast.test.ts's
+   *     hue-separation check for the numeric guard against that
+   *     regressing.
+   *   - The near-black base carries a faint wine cast rather than true
+   *     neutral black — candlelit/low-light association (intimacy,
+   *     privacy) rather than nova's cosmic-void association. Still dark
+   *     enough that danger/success/text tokens (untouched, see above)
+   *     keep their existing contrast ratios without re-testing.
+   *   - --gold-600 is muted (lightened/desaturated), not simply darker,
+   *     the same deliberate choice nova's own 600 makes (see nova block
+   *     above) — a naive "pressed button" darkening of 600 measured
+   *     under 4.5:1 against this theme's base when used as text (sidebar
+   *     active-state labels etc. reuse the 300–600 steps as text, not
+   *     just fills), so 600 trades "reads as pressed" for "stays legible
+   *     everywhere the scale gets reused."
+   */
+  [data-theme="velvet"] {
+    --color-base: 18 8 10; /* #12080A — near-black, subtle wine cast */
+
+    --gold-50: 251 237 231;
+    --gold-100: 242 211 196;
+    --gold-200: 231 179 156;
+    --gold-300: 219 147 119;
+    --gold-400: 208 127 94; /* hover */
+    --gold-500: 198 100 68; /* primary — terracotta-rust CTA fill, active states */
+    --gold-600: 182 120 95; /* muted, not darker — see comment above */
+    --gold-700: 122 57 37;
+    --gold-900: 74 34 22;
+
+    --gold-fill-gradient: linear-gradient(180deg, #d07f5e 0%, #c66444 55%, #b6785f 100%);
+    /* Single-hue center-fade, same shape as gold's own edge gradient —
+       unlike nova's three-hue sweep, velvet keeps the one-hue restraint
+       gold already established rather than reaching for spectacle. */
+    --gold-edge-gradient: linear-gradient(
+      90deg,
+      rgba(198, 100, 68, 0) 0%,
+      rgba(198, 100, 68, 0.9) 50%,
+      rgba(198, 100, 68, 0) 100%
+    );
+    --gold-glow-shadow: 0 0 0 1px rgba(198, 100, 68, 0.4), 0 8px 26px -8px rgba(198, 100, 68, 0.3),
+      0 0 36px -14px rgba(182, 120, 95, 0.25);
+
+    --theme-meta-color: #12080a;
+  }
+
+  /**
+   * Aurora — violet-to-warm-gold dusk, built as the fourth theme for the
+   * Phase 1 Immersive UI Upgrade's visual language ("violet → magenta →
+   * warm accent," restrained/cinematic, emotionally warm rather than
+   * cosmic-void or candlelit-intimate — the two directions nova and
+   * velvet already own). Primary ramp is a warm dusty rose/mauve (hue
+   * ~326°) rather than nova's blue-dominant violet (283°) or velvet's
+   * red-dominant rust (~15°) — deliberately in between on the wheel, but
+   * far enough from --danger's red (#E5484D) to clear the same
+   * hue-separation guard velvet's own history required (see arch-15's
+   * aurora test) without borrowing either neighbor's identity outright.
+   *
+   * Same ramp shape/contract as nova and velvet: hue held ~constant
+   * across 50→900, WCAG AA re-verified at 300/400/500/600 rather than
+   * assumed (arch-theme-aurora-contrast.test.ts), 600 muted
+   * (desaturated, lightened relative to 500) rather than naively
+   * darkened for the same text-legibility reason nova's and velvet's
+   * own comments describe.
+   *
+   * --gold-edge-gradient is this theme's one deliberate second exception
+   * to the single-hue-restraint rule gold and velvet both follow (nova
+   * was the first) — it's the literal violet → magenta → warm-gold
+   * three-stop sweep the visual-language brief calls for, reserved for
+   * the same interactive/premium spot gold-edge already is, nowhere
+   * else. The violet start point is the *same* rgba(103,41,245,...)
+   * nova's own edge-gradient and glow use — not a coincidence: both
+   * themes trace back to the same companion-hero-art source violet (see
+   * nova's comment above), so aurora's gradient reads as a continuation
+   * of that asset into warmer territory rather than an unrelated color
+   * invented from scratch.
+   */
+  [data-theme="aurora"] {
+    --color-base: 13 8 15; /* #0D080F — near-black, faint violet-plum cast */
+
+    --gold-50: 244 235 240;
+    --gold-100: 234 215 226;
+    --gold-200: 218 180 201;
+    --gold-300: 203 144 177;
+    --gold-400: 192 114 158;
+    --gold-500: 193 103 154; /* primary — CTA fill, active states */
+    --gold-600: 178 118 152; /* muted, not darker — see comment above */
+    --gold-700: 118 45 86;
+    --gold-900: 72 30 54;
+
+    --gold-fill-gradient: linear-gradient(180deg, #c0729e 0%, #c1679a 55%, #b27698 100%);
+    /* Violet → magenta → warm gold — this theme's visual signature, and
+       its one sanctioned multi-hue exception (see comment above). */
+    --gold-edge-gradient: linear-gradient(
+      90deg,
+      rgba(103, 41, 245, 0) 0%,
+      rgba(103, 41, 245, 0.85) 20%,
+      rgba(200, 60, 150, 0.95) 50%,
+      rgba(230, 150, 80, 0.85) 80%,
+      rgba(230, 150, 80, 0) 100%
+    );
+    --gold-glow-shadow: 0 0 0 1px rgba(193, 103, 154, 0.4), 0 8px 27px -8px rgba(178, 60, 120, 0.32),
+      0 0 38px -13px rgba(103, 41, 245, 0.22);
+
+    --theme-meta-color: #0d080f;
+  }
+
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border-hairline;
+  }
+
+  html,
+  body {
+    @apply bg-base text-text-primary;
+    font-feature-settings: "ss01" 1;
+    /* SWAY-FIX: nothing at the root previously stopped an off-viewport
+       element (decorative blur circles positioned with negative offsets,
+       a fixed-px-width block, an unwrapped wide table, etc.) from
+       expanding html/body's scrollable width. Any single such element
+       anywhere in the app made the *entire* page horizontally
+       scrollable/rubber-bandable on touch devices — reading as the whole
+       layout "swaying" side to side on drag, even though only one
+       element was actually oversized. This is a containment backstop,
+       not a fix for each offending element individually: intentionally
+       scrollable content (e.g. retention-table.tsx's wide table) stays
+       scrollable because it opts in locally via its own overflow-x-auto
+       wrapper, which is unaffected by this rule living one level up on
+       the axis it doesn't touch (only x, so vertical scroll is untouched
+       everywhere else). */
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    position: relative;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+  }
+
+  /* Visible keyboard focus everywhere — accessibility floor, never removed. */
+  :focus-visible {
+    outline: 2px solid theme("colors.gold.500");
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: rgb(var(--gold-500) / 0.28);
+    color: #fff;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep native scroll — used by horizontal rows. */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+  .snap-card {
+    scroll-snap-align: start;
+  }
+
+  /* Signature system-wide device: a 1px gold gradient hairline that marks
+     "this is interactive or premium" — the literal implementation of the
+     theme's own rule (§1). Used on the active sidebar item's left edge,
+     the primary CTA's hover ring, and the premium badge — nowhere else. */
+  .gold-edge-top {
+    position: relative;
+  }
+  .gold-edge-top::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background-image: theme("backgroundImage.gold-edge");
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
